@@ -5,42 +5,36 @@ const client = require('./redis')
 
 const app = express()
 
-const port = process.env.PORT || 3000
+const port = process.env.PORT || 8000
+
+const getPokemonData = (nameOrNumber) => {
+  return new Promise((resolve, reject) =>  {
+    client.get(nameOrNumber, async (error, result) => {
+      if (result) {
+        resolve(JSON.parse(result))
+      } else {
+        if (nameOrNumber !== 'favicon.ico') {
+          const { data } = await api.get(`/${nameOrNumber}`)
+          client.set(nameOrNumber, JSON.stringify(data))
+          resolve(data)
+        }
+      }
+    })
+  })
+}
 
 app.get('/:slug', async (request, response) => {
   try {
-    let pokemonData = await new Promise((resolve, reject) =>  {
-      client.get(request.params.slug, async (error, result) => {
-        if (result) {
-          resolve(JSON.parse(result))
-        } else {
-          const { data } = await api.get(`/${request.params.slug}`)
-          client.set(request.params.slug, JSON.stringify(data))
-          resolve(data)
-        }
-      })
-    })
+    let pokemonData = await getPokemonData(request.params.slug)
 
     pokemonData = await Promise.all(pokemonData.map(async (pokemon, index) => {
       try {
         const evolutionLine = pokemon.family.evolutionLine
       
-        let extraData = evolutionLine.map(async pokemon => {
+        let extraData = evolutionLine.map(async pokemonName => {
           try {
-            let data = await new Promise((resolve, reject) =>  {
-              client.get(request.params.slug, async (error, result) => {
-                if (result) {
-                  resolve(JSON.parse(result))
-                } else {
-                  const { data } = await api.get(`/${pokemon}`)
-                  client.set(request.params.slug, JSON.stringify(data))
-                  resolve(data)
-                }
-              })
-            })
-
+            let data = await getPokemonData(pokemonName.toLowerCase())
             const { name, number, sprite } = data[index] ? data[index] : data[0]
-      
             return { name, number, sprite }
           } catch (error) {
             throw new Error('Error when fetching evolution line data')
@@ -53,34 +47,14 @@ app.get('/:slug', async (request, response) => {
 
         let previous = {}
         if (parseInt(pokemon.number) > 1) {
-          let data = await new Promise((resolve, reject) =>  {
-            client.get((parseInt(pokemon.number) - 1).toString(), async (error, result) => {
-              if (result) {
-                resolve(JSON.parse(result))
-              } else {
-                const { data } = await api.get(`/${parseInt(pokemon.number) - 1}`)
-                client.set((parseInt(pokemon.number) - 1).toString(), JSON.stringify(data))
-                resolve(data)
-              }
-            })
-          })
+          let data = await getPokemonData((parseInt(pokemon.number) - 1).toString())
           const { name, number, sprite } = data[0]
           previous = { name, number, sprite }
         }
 
         let next = {}
         if (parseInt(pokemon.number) < total) {
-          let data = await new Promise((resolve, reject) =>  {
-            client.get((parseInt(pokemon.number) + 1).toString(), async (error, result) => {
-              if (result) {
-                resolve(JSON.parse(result))
-              } else {
-                const { data } = await api.get(`/${parseInt(pokemon.number) + 1}`)
-                client.set((parseInt(pokemon.number) + 1).toString(), JSON.stringify(data))
-                resolve(data)
-              }
-            })
-          })
+          let data = await getPokemonData((parseInt(pokemon.number) + 1).toString())
           const { name, number, sprite } = data[0]
           next = { name, number, sprite }
         }
