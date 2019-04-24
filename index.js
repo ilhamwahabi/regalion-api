@@ -7,9 +7,37 @@ const app = express()
 const port = process.env.PORT || 3000
 
 app.get('/:slug', async (request, response) => {
-  const { data } = await api.get(`/${request.params.slug}`)
+  try {
+    let { data } = await api.get(`/${request.params.slug}`)
 
-  response.send(data)
+    data = await Promise.all(data.map(async (pokemon, index) => {
+      try {
+        const evolutionLine = pokemon.family.evolutionLine
+      
+        let extraData = evolutionLine.map(async pokemon => {
+          try {
+            const { data } = await api.get(`/${pokemon}`)
+            const { name, number, sprite } = data[index] ? data[index] : data[0]
+      
+            return { name, number, sprite }
+          } catch (error) {
+            throw new Error('Error when fetching evolution line data')
+          }
+        })
+    
+        extraData = await Promise.all(extraData)
+    
+        const family = { ...pokemon.family, evolutionLine: extraData }
+        return { ...pokemon, family } 
+      } catch (error) {
+        throw new Error('Error when update pokemon family data')
+      }
+    }))
+  
+    response.send(data)
+  } catch (error) {
+    throw new Error('Error when return pokemon data ' + error)
+  }
 })
 
 app.listen(port, () => {
