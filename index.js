@@ -26,9 +26,25 @@ app.get('/:slug', async (request, response) => {
         })
     
         extraData = await Promise.all(extraData)
-    
+
+        const { data: { total } } = await api.get('/counts')
+
+        let previous = {}
+        if (parseInt(pokemon.number) > 1) {
+          const { data } = await api.get(`/${parseInt(pokemon.number) - 1}`)
+          const { name, number, sprite } = data[0]
+          previous = { name, number, sprite }
+        }
+
+        let next = {}
+        if (parseInt(pokemon.number) < total) {
+          const { data } = await api.get(`/${parseInt(pokemon.number) + 1}`)
+          const { name, number, sprite } = data[0]
+          next = { name, number, sprite }
+        }
+
         const family = { ...pokemon.family, evolutionLine: extraData }
-        return { ...pokemon, family } 
+        return { ...pokemon, family, previous, next } 
       } catch (error) {
         throw new Error('Error when update pokemon family data')
       }
