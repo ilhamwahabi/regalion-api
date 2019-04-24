@@ -1,6 +1,7 @@
 const express = require('express')
 
 const api = require('./api')
+const client = require('./redis')
 
 const app = express()
 
@@ -8,15 +9,36 @@ const port = process.env.PORT || 3000
 
 app.get('/:slug', async (request, response) => {
   try {
-    let { data } = await api.get(`/${request.params.slug}`)
+    let pokemonData = await new Promise((resolve, reject) =>  {
+      client.get(request.params.slug, async (error, result) => {
+        if (result) {
+          resolve(JSON.parse(result))
+        } else {
+          const { data } = await api.get(`/${request.params.slug}`)
+          client.set(request.params.slug, JSON.stringify(data))
+          resolve(data)
+        }
+      })
+    })
 
-    data = await Promise.all(data.map(async (pokemon, index) => {
+    pokemonData = await Promise.all(pokemonData.map(async (pokemon, index) => {
       try {
         const evolutionLine = pokemon.family.evolutionLine
       
         let extraData = evolutionLine.map(async pokemon => {
           try {
-            const { data } = await api.get(`/${pokemon}`)
+            let data = await new Promise((resolve, reject) =>  {
+              client.get(request.params.slug, async (error, result) => {
+                if (result) {
+                  resolve(JSON.parse(result))
+                } else {
+                  const { data } = await api.get(`/${pokemon}`)
+                  client.set(request.params.slug, JSON.stringify(data))
+                  resolve(data)
+                }
+              })
+            })
+
             const { name, number, sprite } = data[index] ? data[index] : data[0]
       
             return { name, number, sprite }
@@ -31,14 +53,34 @@ app.get('/:slug', async (request, response) => {
 
         let previous = {}
         if (parseInt(pokemon.number) > 1) {
-          const { data } = await api.get(`/${parseInt(pokemon.number) - 1}`)
+          let data = await new Promise((resolve, reject) =>  {
+            client.get((parseInt(pokemon.number) - 1).toString(), async (error, result) => {
+              if (result) {
+                resolve(JSON.parse(result))
+              } else {
+                const { data } = await api.get(`/${parseInt(pokemon.number) - 1}`)
+                client.set((parseInt(pokemon.number) - 1).toString(), JSON.stringify(data))
+                resolve(data)
+              }
+            })
+          })
           const { name, number, sprite } = data[0]
           previous = { name, number, sprite }
         }
 
         let next = {}
         if (parseInt(pokemon.number) < total) {
-          const { data } = await api.get(`/${parseInt(pokemon.number) + 1}`)
+          let data = await new Promise((resolve, reject) =>  {
+            client.get((parseInt(pokemon.number) + 1).toString(), async (error, result) => {
+              if (result) {
+                resolve(JSON.parse(result))
+              } else {
+                const { data } = await api.get(`/${parseInt(pokemon.number) + 1}`)
+                client.set((parseInt(pokemon.number) + 1).toString(), JSON.stringify(data))
+                resolve(data)
+              }
+            })
+          })
           const { name, number, sprite } = data[0]
           next = { name, number, sprite }
         }
@@ -50,7 +92,7 @@ app.get('/:slug', async (request, response) => {
       }
     }))
   
-    response.send(data)
+    response.send(pokemonData)
   } catch (error) {
     throw new Error('Error when return pokemon data ' + error)
   }
