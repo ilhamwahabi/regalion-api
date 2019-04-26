@@ -10,7 +10,7 @@ client.on('connect', () => {
 })
 
 client.on('error', (error) => {
-  console.log('Something went wrong ' + err)
+  console.log('Something went wrong ' + error)
 })
 
 module.exports = client
