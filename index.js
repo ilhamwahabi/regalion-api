@@ -1,9 +1,12 @@
 const express = require('express')
+const cors = require('cors')
 
 const api = require('./api')
 const client = require('./redis')
 
 const app = express()
+
+app.use(cors())
 
 const port = process.env.PORT || 8000
 
