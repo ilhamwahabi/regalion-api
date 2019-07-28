@@ -10,4 +10,4 @@ Make sure you have Node and Redis installed.
 
 1. Install dependencies `npm install`
 2. Run redis first `redis-server`, you can open cli with `redis-cli`
-3. Run server then `npm start`
+3. Run server with nodemon then `npm start:watch`
