@@ -11,3 +11,7 @@ Make sure you have Node and Redis installed.
 1. Install dependencies `npm install`
 2. Run redis first `redis-server`, you can open cli with `redis-cli`
 3. Run server with nodemon then `npm start:watch`
+
+## Deployment
+
+1. Run `git push heroku master`
