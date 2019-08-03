@@ -57,9 +57,12 @@ app.get("/:slug", async (request, response) => {
           ).getPalette();
 
           const palettes = {
-            normal: vibrantPalettes.Vibrant._rgb.join(),
-            dark: vibrantPalettes.DarkVibrant._rgb.join(),
-            light: vibrantPalettes.LightVibrant._rgb.join()
+            vibrant: vibrantPalettes.Vibrant._rgb.join(),
+            darkVibrant: vibrantPalettes.DarkVibrant._rgb.join(),
+            lightVibrant: vibrantPalettes.LightVibrant._rgb.join(),
+            muted: vibrantPalettes.Muted._rgb.join(),
+            darkMuted: vibrantPalettes.DarkMuted._rgb.join(),
+            lightMuted: vibrantPalettes.LightMuted._rgb.join()
           };
 
           // Get total pokemon
